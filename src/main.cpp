@@ -3,29 +3,22 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "pico/stdlib.h"
+#include "pico/stdio_uart.h"
 
 #include "hardware/timer.h"
 #include "event_groups.h"
 #include "ipstack/IPStack.h"
 //#include "uart/PicoOsUart.h"
 
-#define HTTP_SERVER         "127.0.0.1"
+#define HTTP_SERVER         "192.168.162.155"
 #define BUFSIZE             2048
 #define WIFI_SSID           "franks_galaxy"
 #define WIFI_PASSWORD       "veef2267"
 
-#if 1
-#define UART_NR 0
-#define UART_TX_PIN 0
-#define UART_RX_PIN 1
-#else
-#define UART_NR 1
-#define UART_TX_PIN 4
-#define UART_RX_PIN 5
-#endif
-
+#define UART_ID uart0   // Use UART0
+#define TX_PIN 0        // Replace with your TX pin
+#define RX_PIN 1        // Replace with your RX pin
 #define BAUD_RATE 115200
-#define STOP_BITS 1
 
 #define BIT_0 (1 << 0)
 #define BIT_1 (1 << 1)
@@ -46,33 +39,28 @@ void print_binary(uint32_t num) {
 }
 
 void init_task(void *param) {
-    auto init_complete_event = (EventGroupHandle_t*) param;
-    //stdio_init_all();
-    //auto uart{std::make_shared<PicoOsUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE, STOP_BITS)};
-    //uart->send("\n\rBoot\n\r");
+    //auto init_complete_event = (EventGroupHandle_t*) param;
+    stdio_uart_init_full(UART_ID, BAUD_RATE, TX_PIN, RX_PIN);
+    sleep_ms(100);
     printf("\nBoot\n");
-    xEventGroupSetBits(*init_complete_event, BIT_0);
-    xEventGroupSetBits(*init_complete_event, BIT_1);
-    xEventGroupSetBits(*init_complete_event, BIT_2);
-    //print bits in binary form
-    printf("bits: ");
-    print_binary(xEventGroupGetBits(*init_complete_event));
+    //BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    //xEventGroupSetBitsFromISR(*init_complete_event, BIT_0, &xHigherPriorityTaskWoken);
+    //portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    //printf("bits: ");
+    //print_binary(xEventGroupGetBits(*init_complete_event));
     while (true) {
         vTaskDelay(1000);
     }
 }
 
 void tcp_server_task(void *pvParameters) {
-    auto init_complete_event = (EventGroupHandle_t*) pvParameters;
-    printf("i amasndbfgkabsdv\n");
-    xEventGroupWaitBits(*init_complete_event, BIT_1 , pdFALSE, pdFALSE, portMAX_DELAY);
-    vTaskDelay(1000);
-    printf("i am here2\n");
+    //auto init_complete_event = (EventGroupHandle_t*) pvParameters;
+    //xEventGroupWaitBits(*init_complete_event, BIT_0 , pdFALSE, pdFALSE, portMAX_DELAY);
     const char *msg = "Hello, Frank!";
     printf("\nconnecting...\n");
     auto *buffer = new unsigned char[BUFSIZE];
     IPStack ipstack(WIFI_SSID, WIFI_PASSWORD);
-
+    printf("bogady boo!\n");
     while(true) {
         int rc = ipstack.connect(HTTP_SERVER, 50372);
         if (rc == 0) {
@@ -89,14 +77,21 @@ void tcp_server_task(void *pvParameters) {
 }
 
 int main(void) {
-    stdio_init_all();
-    sleep_ms(1000);
-    printf("Hello, world!\n");
     // create freeRTOS event group bits
-    EventGroupHandle_t init_complete_event = xEventGroupCreate();
+    //EventGroupHandle_t init_complete_event = xEventGroupCreate();
     // create init task
-    xTaskCreate(init_task, "init", 1024, &init_complete_event, 1, NULL);
-    xTaskCreate(tcp_server_task, "TCP", 6000, &init_complete_event, 1, NULL);
+    TaskHandle_t init_task_handle;
+    UBaseType_t uxCore1AffinityMask;
+    xTaskCreate(init_task, "init", 1024, nullptr, tskIDLE_PRIORITY + 1, &init_task_handle);
+    uxCore1AffinityMask = ( ( 1 << 0 )); // should be uxCore1AffinityMask = ( ( 1 << 1 )); for core 1
+    vTaskCoreAffinitySet( init_task_handle, uxCore1AffinityMask );
+
+    TaskHandle_t tcp_server_task_handle;
+    UBaseType_t uxCore0AffinityMask;
+    xTaskCreate(tcp_server_task, "TCP", 6000, nullptr, tskIDLE_PRIORITY + 2, &tcp_server_task_handle);
+    uxCore0AffinityMask = ( ( 1 << 0 ));
+    vTaskCoreAffinitySet( tcp_server_task_handle, uxCore0AffinityMask );
+
     vTaskStartScheduler();
     // never reached
     while (true) {};
