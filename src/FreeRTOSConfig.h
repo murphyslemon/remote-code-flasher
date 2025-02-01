@@ -124,6 +124,7 @@ uint32_t read_runtime_ctr(void);
 #define configTICK_CORE                         0
 #define configRUN_MULTIPLE_PRIORITIES           1
 #define configUSE_CORE_AFFINITY                 1
+#define configNUM_CORES configNUMBER_OF_CORES
 #endif
 
 /* RP2040 specific */

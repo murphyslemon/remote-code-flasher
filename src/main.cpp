@@ -39,25 +39,24 @@ void print_binary(uint32_t num) {
 }
 
 void init_task(void *param) {
-    //auto init_complete_event = (EventGroupHandle_t*) param;
+    auto init_complete_event = (EventGroupHandle_t*) param;
     stdio_uart_init_full(UART_ID, BAUD_RATE, TX_PIN, RX_PIN);
-    sleep_ms(100);
     printf("\nBoot\n");
-    //BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    //xEventGroupSetBitsFromISR(*init_complete_event, BIT_0, &xHigherPriorityTaskWoken);
-    //portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    xEventGroupSetBits(*init_complete_event, BIT_0);
     //printf("bits: ");
     //print_binary(xEventGroupGetBits(*init_complete_event));
     while (true) {
-        vTaskDelay(1000);
+        vTaskDelay(100);
     }
 }
 
 void tcp_server_task(void *pvParameters) {
-    //auto init_complete_event = (EventGroupHandle_t*) pvParameters;
-    //xEventGroupWaitBits(*init_complete_event, BIT_0 , pdFALSE, pdFALSE, portMAX_DELAY);
+    auto init_complete_event = (EventGroupHandle_t*) pvParameters;
+    xEventGroupWaitBits(*init_complete_event, BIT_0 , pdFALSE, pdFALSE, portMAX_DELAY);
+    //stdio_uart_init_full(UART_ID, BAUD_RATE, TX_PIN, RX_PIN);
+    printf("TCP Server\n");
+    vTaskDelay(1000);
     const char *msg = "Hello, Frank!";
-    printf("\nconnecting...\n");
     auto *buffer = new unsigned char[BUFSIZE];
     IPStack ipstack(WIFI_SSID, WIFI_PASSWORD);
     printf("bogady boo!\n");
@@ -78,18 +77,18 @@ void tcp_server_task(void *pvParameters) {
 
 int main(void) {
     // create freeRTOS event group bits
-    //EventGroupHandle_t init_complete_event = xEventGroupCreate();
+    EventGroupHandle_t init_complete_event = xEventGroupCreate();
     // create init task
     TaskHandle_t init_task_handle;
     UBaseType_t uxCore1AffinityMask;
-    xTaskCreate(init_task, "init", 1024, nullptr, tskIDLE_PRIORITY + 1, &init_task_handle);
-    uxCore1AffinityMask = ( ( 1 << 0 )); // should be uxCore1AffinityMask = ( ( 1 << 1 )); for core 1
+    xTaskCreate(init_task, "init", 1024, &init_complete_event, tskIDLE_PRIORITY + 1, &init_task_handle);
+    uxCore1AffinityMask = ( 0x03); // should be uxCore1AffinityMask = ( ( 1 << 1 )); for core 1
     vTaskCoreAffinitySet( init_task_handle, uxCore1AffinityMask );
 
     TaskHandle_t tcp_server_task_handle;
     UBaseType_t uxCore0AffinityMask;
-    xTaskCreate(tcp_server_task, "TCP", 6000, nullptr, tskIDLE_PRIORITY + 2, &tcp_server_task_handle);
-    uxCore0AffinityMask = ( ( 1 << 0 ));
+    xTaskCreate(tcp_server_task, "TCP", 4096, &init_complete_event, tskIDLE_PRIORITY + 2, &tcp_server_task_handle);
+    uxCore0AffinityMask = 0x03;
     vTaskCoreAffinitySet( tcp_server_task_handle, uxCore0AffinityMask );
 
     vTaskStartScheduler();

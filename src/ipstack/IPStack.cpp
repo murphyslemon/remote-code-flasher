@@ -29,6 +29,87 @@ IPStack::IPStack(const char *ssid, const char *pw) : tcp_pcb{nullptr}, dropped{0
 
 }
 
+#define SERVER_PORT         50732
+#define BUFSIZE             2048
+#define WIFI_SSID           "franks_galaxy"
+#define WIFI_PASSWORD       "veef2267"
+#define BACKLOG             5
+#define BUFFER_SIZE         1024
+
+int listen(const char *hostname, int port) {
+    printf("Initializing Wi-Fi...\n");
+
+    if (cyw43_arch_init()) {
+        printf("Failed to initialize Wi-Fi!\n");
+        return 1;
+    }
+    cyw43_arch_enable_sta_mode();
+
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000)) {
+        printf("Wi-Fi connection failed!\n");
+        return 2;
+    }
+    printf("Connected to Wi-Fi.\n");
+
+    // Create a TCP socket
+    int server_socket = lwip_socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0) {
+        printf("Failed to create socket.\n");
+        return 3;
+    }
+
+    // Bind the socket to a local address
+    struct sockaddr_in server_addr = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = htonl(INADDR_ANY), // Listen on all interfaces
+            .sin_port = htons(SERVER_PORT)
+    };
+
+    if (lwip_bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        printf("Failed to bind socket.\n");
+        lwip_close(server_socket);
+        return 4;
+    }
+
+    // Start listening for incoming connections
+    if (lwip_listen(server_socket, BACKLOG) < 0) {
+        printf("Failed to listen on socket.\n");
+        lwip_close(server_socket);
+        return 5;
+    }
+
+    printf("TCP Server listening on port %d\n", SERVER_PORT);
+
+    while (1) {
+        struct sockaddr_in client_addr;
+        socklen_t client_len = sizeof(client_addr);
+        int client_socket = lwip_accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
+
+        if (client_socket < 0) {
+            printf("Failed to accept connection.\n");
+            continue;
+        }
+
+        printf("Client connected!\n");
+
+        char buffer[BUFFER_SIZE];
+        int received = lwip_recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
+        if (received > 0) {
+            buffer[received] = '\0';
+            printf("Received: %s\n", buffer);
+
+            // Send a response
+            char response[] = "Hello from Pico W!\n";
+            lwip_send(client_socket, response, strlen(response), 0);
+        }
+
+        lwip_close(client_socket);
+        printf("Client disconnected.\n");
+    }
+}
+
+#ifndef LWIP_SOCKET
+
 int IPStack::connect(uint32_t hostname, int port) {
     return ERR_ARG;
 }
@@ -63,7 +144,7 @@ int IPStack::connect(const char *hostname, int port) {
 
     return err;
 }
-
+#endif
 /** Function prototype for tcp sent callback functions. Called when sent data has
  * been acknowledged by the remote side. Use it to free corresponding resources.
  * This also means that the pcb has now space available to send new data.
