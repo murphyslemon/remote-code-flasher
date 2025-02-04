@@ -31,6 +31,5 @@ target_include_directories(${ProjectName} PRIVATE
         ${PICO_SDK_PATH}/src/rp2_common/pico_stdlib/include
         src
         src/ipstack
-        src/uart
         ${PICO_SDK_PATH}/lib/mbedtls/include
 )

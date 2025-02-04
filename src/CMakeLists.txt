@@ -1,7 +1,6 @@
 add_executable(${ProjectName}
         ipstack/IPStack.cpp
         ipstack/tls_common.c
-        uart/PicoOsUart.cpp
         Fmutex.cpp
         main.cpp
 )
