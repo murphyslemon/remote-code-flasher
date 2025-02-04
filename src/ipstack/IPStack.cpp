@@ -11,6 +11,9 @@
 //#define DEBUG_printf(x, ...) {}
 #define DEBUG_printf printf
 #define DUMP_BYTES(A, B) {}
+#define STATIC_IP      "192.168.162.100"
+#define STATIC_NETMASK "255.255.255.0"
+//#define STATIC_GATEWAY "192.168.162.119"
 
 
 IPStack::IPStack(const char *ssid, const char *pw) : tcp_pcb{nullptr}, dropped{0}, count{0}, wr{0}, rd{0}, connected{false} {
@@ -34,7 +37,7 @@ IPStack::IPStack(const char *ssid, const char *pw) : tcp_pcb{nullptr}, dropped{0
     dhcp_stop(netif);
 
     // Assign static IP
-    netif_set_addr(netif, &ip, &netmask, &gateway);
+    netif_set_addr(netif, &ip, &netmask, /*&gateway*/nullptr);
     netif_set_up(netif); // Bring the interface up
 
     DEBUG_printf("Connecting to Wi-Fi...\n");
