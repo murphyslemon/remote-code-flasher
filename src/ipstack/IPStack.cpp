@@ -20,6 +20,23 @@ IPStack::IPStack(const char *ssid, const char *pw) : tcp_pcb{nullptr}, dropped{0
     }
     cyw43_arch_enable_sta_mode();
 
+
+    // Get network interface
+    struct netif *netif = &cyw43_state.netif[0];
+
+    // Convert IP addresses from string to lwIP format
+    ip4_addr_t ip, netmask/*, gateway*/;
+    ip4addr_aton(STATIC_IP, &ip);
+    ip4addr_aton(STATIC_NETMASK, &netmask);
+    //ip4addr_aton(STATIC_GATEWAY, &gateway);
+
+    // Disable DHCP (if running)
+    dhcp_stop(netif);
+
+    // Assign static IP
+    netif_set_addr(netif, &ip, &netmask, &gateway);
+    netif_set_up(netif); // Bring the interface up
+
     DEBUG_printf("Connecting to Wi-Fi...\n");
     if (cyw43_arch_wifi_connect_timeout_ms(ssid, pw, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
         DEBUG_printf("Failed to connect.\n");

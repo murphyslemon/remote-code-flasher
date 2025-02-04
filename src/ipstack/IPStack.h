@@ -13,6 +13,10 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
+#define STATIC_IP      "192.168.162.100"
+#define STATIC_NETMASK "255.255.255.0"
+//#define STATIC_GATEWAY "192.168.1.1"
+
 
 class IPStack {
 public:
