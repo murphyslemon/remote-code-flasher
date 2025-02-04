@@ -82,14 +82,14 @@ int main(void) {
     TaskHandle_t init_task_handle;
     UBaseType_t uxCore1AffinityMask;
     xTaskCreate(init_task, "init", 1024, &init_complete_event, tskIDLE_PRIORITY + 1, &init_task_handle);
-    uxCore1AffinityMask = ( 0x03); // should be uxCore1AffinityMask = ( ( 1 << 1 )); for core 1
-    vTaskCoreAffinitySet( init_task_handle, uxCore1AffinityMask );
+    //uxCore1AffinityMask = ( 0x03); // should be uxCore1AffinityMask = ( ( 1 << 1 )); for core 1
+    //vTaskCoreAffinitySet( init_task_handle, uxCore1AffinityMask );
 
     TaskHandle_t tcp_server_task_handle;
     UBaseType_t uxCore0AffinityMask;
     xTaskCreate(tcp_server_task, "TCP", 4096, &init_complete_event, tskIDLE_PRIORITY + 2, &tcp_server_task_handle);
     uxCore0AffinityMask = 0x03;
-    vTaskCoreAffinitySet( tcp_server_task_handle, uxCore0AffinityMask );
+    //vTaskCoreAffinitySet( tcp_server_task_handle, uxCore0AffinityMask );
 
     vTaskStartScheduler();
     // never reached
