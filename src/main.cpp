@@ -1,14 +1,7 @@
-#include <cstdio>
-#include <cstring>
 #include "FreeRTOS.h"
-#include "task.h"
-#include "pico/stdio_uart.h"
-
-#include "hardware/timer.h"
 #include "event_groups.h"
 #include "ipstack/IPStack.h"
 #include "lwip/api.h"
-#include "lwip/sys.h"
 
 #define WIFI_SSID           "franks_galaxy"
 #define WIFI_PASSWORD       "veef2267"
