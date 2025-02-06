@@ -33,3 +33,6 @@ target_include_directories(${ProjectName} PRIVATE
         src/ipstack
         ${PICO_SDK_PATH}/lib/mbedtls/include
 )
+
+pico_generate_pio_header(${ProjectName} ${CMAKE_CURRENT_LIST_DIR}/src/probe.pio)
+pico_generate_pio_header(${ProjectName} ${CMAKE_CURRENT_LIST_DIR}/src/probe_oen.pio)
